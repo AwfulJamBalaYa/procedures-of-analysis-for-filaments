@@ -30,13 +30,19 @@ pro width_hist
 	!p.CHARSIZE = 1.5
 	cghistoplot, pwidth[good_p], binsize = 0.1, xrange = [0, 1.5], $
 		xtitle = '!17 Plummer FHWM width (pc)', ytitle = '!17 Number', $
-			ytickformat = '(I)', yrange = [0, 15], /fill, $
-				datacolorname = ['black'],  POLYCOLOR=['blu5'], mininput = 0.1
+			ytickformat = '(I)', yrange = [0, 10], /fill, $
+				datacolorname = ['black'],  POLYCOLOR=['blu5'], mininput = 0.
 	median_p = median(pwidth[good_p])
+	mean_p = mean(pwidth[good_p])
+	skew_p = skewness(pwidth[good_p])
 	std_p = stddev(pwidth[good_p])
 	cgplot, [median_p, median_p], [0, 20], linestyle = 2, $
 		/overplot, thick = 4, color = 'red'
-	cgtext, 0.7, 10, 'Median = ' + $
+	beamsize = 0.1
+	cgplot, [beamsize, beamsize], [0, 20], linestyle = 2, $
+		/overplot, thick = 4, color = 'black'
+	cgtext, 0.15, 8, 'Beam size', color = 'black', /data
+	cgtext, 0.7, 8, 'Median = ' + $
 		strtrim(string(median_p, format = '(f7.2)'), 2), color = 'red', /data
 	cgps_close
 
@@ -47,11 +53,16 @@ pro width_hist
 	!p.CHARSIZE = 1.5
 	cghistoplot, gwidth[good_g], binsize = 0.1, xrange = [0, 1.5], $
 		xtitle = 'Gaussian FWHM width (pc)', ytitle = 'Number', ytickformat = '(I)', $
-			yrange = [0, 25], /fill, datacolorname = ['black'], $
-				POLYCOLOR=['blu5'], mininput = 0.1
+			yrange = [0, 20], /fill, datacolorname = ['black'], $
+				POLYCOLOR=['blu5'], mininput = 0.
 	median_g = median(gwidth[good_g])
+	mean_g = mean(gwidth[good_g])
+	skew_g = skewness(gwidth[good_g])
 	std_g = stddev(gwidth[good_g])
 	cgplot, [median_g, median_g], [0, 30], linestyle = 2, /overplot, thick = 4, color = 'red'
+	cgplot, [beamsize, beamsize], [0, 30], linestyle = 2, $
+		/overplot, thick = 4, color = 'black'
+	cgtext, 0.15, 15, 'Beam size', color = 'black', /data
 	cgtext, 0.5, 15, 'Median = ' + $
 		strtrim(string(median_g, format = '(f7.2)'), 2), color = 'red', /data
 	cgps_close
@@ -63,29 +74,40 @@ pro width_hist
 	!p.CHARSIZE = 1.5
 	cghistoplot, m2sym[good_m2sym], binsize = 0.05, $
 		xrange = [0., 1.5], xtitle = '!17 FWHM (pc)', ytitle = '!17 Number', $
-			ytickformat = '(I)', yrange = [0, 150], /fill, datacolorname = ['black'],  $
-				POLYCOLOR=['blu5'], position = pos, mininput = 0.15
+			ytickformat = '(I)', yrange = [0, 90], /fill, datacolorname = ['black'],  $
+				POLYCOLOR=['blu5'], position = pos, mininput = 0.25
 	cghistoplot, m2asym[good_m2asym], binsize = 0.05, $
 			ytickformat = '(I)', /fill, datacolorname = ['red4'],  $
 				POLYCOLOR=['red4'], position = pos, /oplot, /line_fill, thick = 5, $
-					orientation = 45, /outline, mininput = 0.15
-	cghistoplot, m2width[good_m2], binsize = 0.05, $
-			ytickformat = '(I)', datacolorname = ['black'],  $
-				POLYCOLOR=['black'], position = pos, /oplot, thick = 5, $
 					orientation = 45, /outline, mininput = 0.25
+	;cghistoplot, m2width[good_m2], binsize = 0.05, $
+	;		ytickformat = '(I)', datacolorname = ['black'],  $
+	;			POLYCOLOR=['black'], position = pos, /oplot, thick = 5, $
+	;				orientation = 45, /outline, mininput = 0.25
 	median_m = median(m2width[good_m2])
+	mean_m = mean(m2width[good_m2])
+	skew_m = skewness(m2width[good_m2])
 	std_m = stddev(m2width[good_m2])
-	medain_msym = median(m2sym[good_m2sym])
+	median_msym = median(m2sym[good_m2sym])
+	mean_msym = mean(m2sym[good_m2sym])
+	skew_msym = skewness(m2sym[good_m2sym])
+	std_msym = stddev(m2sym[good_m2sym])
 	median_masym = median(m2asym[good_m2asym])
-	cgplot, [medain_msym, medain_msym], [0, 150], linestyle = 2, /overplot, thick = 4, color = 'blue'
+	mean_masym = mean(m2asym[good_m2asym])
+	skew_masym = skewness(m2asym[good_m2asym])
+	std_masym = stddev(m2asym[good_m2asym])
+	cgplot, [median_msym, median_msym], [0, 150], linestyle = 2, /overplot, thick = 4, color = 'blue'
 	cgplot, [median_masym, median_masym], [0, 150], linestyle = 2, /overplot, thick = 4, color = 'red'
-	cgplot, [median_m, median_m], [0, 150], linestyle = 2, /overplot, thick = 4, color = 'black'
+	;cgplot, [median_m, median_m], [0, 150], linestyle = 2, /overplot, thick = 4, color = 'black'
+	cgplot, [beamsize, beamsize], [0, 150], linestyle = 2, $
+		/overplot, thick = 4, color = 'black'
+	cgtext, 0.11, 50, 'Beam size', color = 'black', /data
 	cgtext, 0.6, 50, 'Median = ' + $
-		strtrim(string(medain_msym, format = '(f7.2)'), 2), color = 'blue', /data
+		strtrim(string(median_msym, format = '(f7.2)'), 2), color = 'blue', /data
 	cgtext, 0.6, 56, 'Median = ' + $
 		strtrim(string(median_masym, format = '(f7.2)'), 2), color = 'red', /data
-	cgtext, 0.6, 62, 'Median = ' + $
-		strtrim(string(median_m, format = '(f7.2)'), 2), color = 'black', /data
+	;cgtext, 0.6, 62, 'Median = ' + $
+	;	strtrim(string(median_m, format = '(f7.2)'), 2), color = 'black', /data
 	cgps_close
 
 	cgps_open, '../width/width_dec.eps', xsize = 9, ysize = 6, /encapsulated
@@ -195,9 +217,9 @@ pro width_hist
 	cgplot, y3, m2sym[good_m2sym], psym = 17, /overplot, color = 'green'
 	cgplot, y4, m2asym[good_m2asym], psym = 17, /overplot, color = 'grey'
 	;cgplot, y5, m2width[good_m2], psym = 17, /overplot, color = 'black'
-	item = ['Plummer', 'Gaussian', '2nd Moment', '2nd Moment', '2nd Moment']
-	al_legend, item, color = ['blu7', 'red', 'green', 'black', 'grey'], $
-		psym = [15, 16, 17, 17, 17], position = [0.67, 0.87], /normal
+	item = ['Plummer', 'Gaussian', '2nd Moment', '2nd Moment']
+	al_legend, item, color = ['blu7', 'red', 'green', 'grey'], $
+		psym = [15, 16, 17, 17], position = [0.67, 0.87], /normal
 	
 	bin = 1.
 	nbin = fix((-5. -(-9.))/bin) 
@@ -274,5 +296,24 @@ pro width_hist
 	print, (dgcx+bin/2)[0:-2], med
 	;cgplot, (dgcx+bin/2)[0:-2], med, /overplot, psym = -17, $
 	;	color = 'black', symsize = 2, thick = 5
+	beamsize = 0.1
+	cgplot, [-9, -4], [beamsize, beamsize], linestyle = 2, $
+        /overplot, thick = 4, color = 'black'
+    cgtext, -5.5, 0.15, 'Beam size', color = 'black', /data
 	cgps_close
+	print, 'The mean of pwidth is : ', strtrim(string(mean_p), 2)
+	print, 'The mean of gwidth is : ', strtrim(string(mean_g), 2)
+	print, 'The mean of m2width is : ', strtrim(string(mean_m), 2)
+	print, 'The mean of s_m2width is : ', strtrim(string(mean_msym), 2)
+	print, 'The mean of a_m2width is : ', strtrim(string(mean_masym), 2)
+	print, 'The skewness of pwidth is : ', strtrim(string(skew_p), 2)
+	print, 'The skewness of gwidth is : ', strtrim(string(skew_g), 2)
+	print, 'The skewness of m2width is : ', strtrim(string(skew_m), 2)
+	print, 'The skewness of s_m2width is : ', strtrim(string(skew_msym), 2)
+	print, 'The skewness of a_m2width is : ', strtrim(string(skew_masym), 2)
+	print, 'The dispersion of pwidth is : ', strtrim(string(std_p), 2)
+	print, 'The dispersion of gwidth is : ', strtrim(string(std_g), 2)
+	print, 'The dispersion of m2width is : ', strtrim(string(std_m), 2)
+	print, 'The dispersion of s_m2width is : ', strtrim(string(std_msym), 2)
+	print, 'The dispersion of a_m2width is : ', strtrim(string(std_masym), 2)
 end

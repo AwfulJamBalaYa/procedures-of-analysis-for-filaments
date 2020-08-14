@@ -63,6 +63,7 @@ function get_profile, f_index, s_index, cal_flag
 	avepro = double(fltarr(2*halflength+1))
 	prerr = avepro
 	prerr1 = prerr
+	num_seq = avepro
 	avepro = avepro - 999.
 	if cal_flag eq 0. then remain[*] = 1.
 	for j = 0, 2*halflength do begin
@@ -77,6 +78,7 @@ function get_profile, f_index, s_index, cal_flag
 		;	total(1/((proerr[*, j])[good3])^2)
 		if n_elements((profile[*, j])[good2]) gt 1 then begin
 			num_i = double(n_elements((profile[*, j])[good2]))
+			num_seq[j] = num_i
 			x_i = (profile[*, j])[good2]
 			avepro[j] = total(x_i)/num_i
 			prerr[j] = sqrt(total((1/(proerr[*, j])[good3])^2*$
@@ -90,13 +92,15 @@ function get_profile, f_index, s_index, cal_flag
 			avepro[j] = (profile[*, j])[good2[0]]
 			prerr[j] = (proerr[*, j])[good3]
 			prerr1[j] = (proerr[*, j])[good3]
+			num_seq[j] = 1.
 		endif
 		if avepro[j] eq -999. then avepro[j] = !values.f_nan
 	endfor
-	all = fltarr(3, 2*halflength + 1.)
+	all = fltarr(4, 2*halflength + 1.)
 	all[0, *] = avepro
 	all[1, *] = prerr1
 	all[2, *] = prerr
+	all[3, *] = num_seq
 	return, all
 end
 
@@ -144,6 +148,7 @@ pro symfit
 	!p.charthick = 3
 	!p.CHARSIZE = 2
 	for i = 0, num_sym-1 do begin
+		;if sym_ind[i] eq 1 and sym_seg[i] eq 12 then begin
 		for j = 0, n_elements(fit_ind)-1 do begin
 			if sym_ind[i] eq fit_ind[j] and $
 				sym_seg[i] eq fit_seg[j] then begin
@@ -158,6 +163,8 @@ pro symfit
 		y_profile_all = alldata[0, *]
 		y_error_all = alldata[1, *]
 		y_dispersion_all = alldata[2, *]
+		num_seq = alldata[3, *]
+		slice_num = max(num_seq)
 		if y_error_all[halflength] eq 0. then $
 			y_error_all[halflength] = $
 				(y_error_all[halflength-1] + y_error_all[halflength+1])/2.
@@ -187,7 +194,7 @@ pro symfit
 			y_dispersion[where(y_dispersion[*] lt 0.)] = !values.f_nan
 		pos = [0.2, 0.2, 0.7, 0.7]
 		cgplot, x_axis*delta, y_profile[*], $
-			position=pos, err_yhigh = y_dispersion[*], err_ylow = y_dispersion[*], $
+			position=pos, err_yhigh = y_error[*], err_ylow = y_error[*], $
 				err_color = 'blue', color = 'black', err_thick=4., err_width = 0.005, $
 					psym = -16, symsize = 0.5, thick = 8, xticks = 4, xminor = 4, $
 						xrange = [-0.8, 0.8], xtitle = '!17 Distance to skeleton (pc)', $
@@ -212,12 +219,37 @@ pro symfit
 ;---PLUMMER FITTING PROCESS ...		
 		print, 'fit by PLUMMER: '
 		expr = 'p[0]/((1+((x+p[3])/p[1])^2)^((p[2]-1)/2)) + p[4]'
-	    start = [1, 0.1, 2., 0., 0.]
+	    start = [1., 0.1, 2., 0., 0.]
 		measure_errors = y_error_all[term_l:term_r];*y_error_all[term_l:term_r]
 		fit_x = x_axis_all[term_l:term_r]*delta
 		fit_xx = fit_x/delta
 		fit_y = y_profile_all[term_l:term_r]
 	  	result = MPFITEXPR(expr, fit_x, fit_y, $
+	  		measure_errors, start, perror = perror, $
+	  			quiet = 1, bestnorm = bestnorm, DOF= DOF, PARINFO = prange)
+	   	prange = replicate({fixed:0,limited:[0,0],limits:[0.,0.]}, 5)
+	   	prange[0].limited(0) = 1
+	   	prange[0].limits(0) = 0.
+	  	prange[0].limited(1) = 1
+		prange[0].limits(1) = 1.5
+	  	prange[1].limited(0) = 1
+		prange[1].limits(0)  = 0.
+	  	prange[1].limited(1) = 1
+	  	prange[1].limits(1) = 1.
+	   	prange[2].limited(0) = 1
+	   	prange[2].limits(0) = 2.
+	   	prange[2].limited(1) = 1
+	   	prange[2].limits(1) = 4.
+	 	prange[3].limited(0) = 1
+		prange[3].limits(0) = -3*delta
+	  	prange[3].limited(1) = 1
+	   	prange[3].limits(1) = 3*delta
+	   	prange[4].limited(0) = 1
+	  	prange[4].limits(0) = 0.
+	  	prange[4].limited(1) = 1
+	  	prange[4].limits(1) = 1.
+		PCERROR = perror * SQRT(BESTNORM / DOF)
+		result = MPFITEXPR(expr, fit_x, fit_y, $
 	  		measure_errors, start, perror = perror, $
 	  			quiet = 1, bestnorm = bestnorm, DOF= DOF, PARINFO = prange)
 	   	prange = replicate({fixed:0,limited:[0,0],limits:[0.,0.]}, 5)
@@ -263,15 +295,18 @@ pro symfit
 		jud_x = xxx[term_l*10:term_r*10]/delta
 		jud_yfit = yfit[term_l*10:term_r*10]
 		n_jud = n_elements(fit_y)
-		jud_er = y_dispersion_all[term_l:term_r]*times
+		jud_dis = y_dispersion_all[term_l:term_r]*times
+		jud_er = y_error_all[term_l:term_r]*times
 		p_goodness_flag = 0.
 		delta_y = 0.
+		delta_y1 = 0.
 		for j = 0, n_jud-1 do begin
 			print, jud_yfit[j*10], fit_y[j], jud_er[j], jud_x[j*10], fit_xx[j]
 			difference_y = abs(jud_yfit[j*10] - fit_y[j])
 			delta_y = delta_y + (difference_y)^2/(jud_er[j]/times)^2
+			delta_y1 = delta_y1 + (difference_y)^2
 			temp_goodness = 0.
-			if difference_y gt jud_er[j] or ~(result[0] ge 0 and $
+			if difference_y gt jud_dis[j] or ~(result[0] ge 0 and $
 				result[0] le 1.5 and result[1] ge 0. and result[1] le 1. and $
 					result[2] ge 2. and result[2] le 4. and result[3] ge -3.*delta and $
 						result[3] le 3.*delta and result[4] ge 0. and result[4] le 1.) then $
@@ -279,6 +314,8 @@ pro symfit
 			p_goodness_flag = p_goodness_flag + temp_goodness
 		endfor
 		re_p = delta_y/(abs(term_r - term_l) + 1. - n_elements(start))
+		if slice_num eq 1. then re_p = delta_y1/(abs(term_r - term_l))/$
+			(abs(term_r - term_l) + 1. - n_elements(start))
 ;---GAUSSIAN FITTING PROCESS ...
 		print, 'fit by GAUSS: '
 		expr = 'gauss1(x, p) + p[3]'
@@ -322,22 +359,27 @@ pro symfit
 		jud_x = xxx[term_l*10:term_r*10]/delta
 		jud_yfit = yfit[term_l*10:term_r*10]
 		n_jud = n_elements(fit_y)
-		jud_er = y_dispersion_all[term_l:term_r]*times
+		jud_dis = y_dispersion_all[term_l:term_r]*times
+		jud_er = y_error_all[term_l:term_r]*times
 		g_goodness_flag = 0.
 		delta_y = 0.
+		delta_y1 = 0.
 		for j = 0, n_jud-1 do begin
 			print, jud_yfit[j*10], fit_y[j], jud_er[j], jud_x[j*10], fit_xx[j]
 			difference_y = abs(jud_yfit[j*10] - fit_y[j])
 			delta_y = delta_y + (difference_y)^2/(jud_er[j]/times)^2
+			delta_y1 = delta_y1 + (difference_y)^2
 			temp_goodness = 0.
 			delta_y = delta_y + difference_y^2
-			if difference_y gt jud_er[j] or ~(gaus[0] ge -3.*delta and $
+			if difference_y gt jud_dis[j] or ~(gaus[0] ge -3.*delta and $
 				gaus[0] le 3.*delta and gaus[1] ge 0. and gaus[1] le 1. and $
 					gaus[3] ge 0. and gaus[3] le 1.) then $
 				temp_goodness = 1.
 			g_goodness_flag = g_goodness_flag + temp_goodness
 		endfor
 		re_g = delta_y/(abs(term_r - term_l) + 1. - n_elements(start))
+		if slice_num eq 1. then re_g = delta_y1/(abs(term_r - term_l))/$
+			(abs(term_r - term_l) + 1. - n_elements(start))
 
 		print, (g_goodness_flag eq 0.)
 		printf, lun1, strtrim(string(sym_ind[i]), 2), $
@@ -365,7 +407,9 @@ pro symfit
 		;p_flag = 1.
 		;g_flag = 1.
 		printf, lun3, strtrim(string(sym_ind[i]), 2), string(sym_seg[i]), $
-			string(psquared*p_flag, format = '(f11.2)'), string(gsquared*g_flag, format = '(f11.2)')
+			string(re_p*p_flag, format = '(f11.2)'), string(re_g*g_flag, format = '(f11.2)'), $
+				string(slice_num, format = '(I)')
+	;endif
 	endfor
 	free_lun, lun
 	free_lun, lun1

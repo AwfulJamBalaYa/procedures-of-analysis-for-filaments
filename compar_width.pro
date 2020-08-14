@@ -12,7 +12,7 @@ pro compar_width
 	!p.charthick = 3
 	!p.CHARSIZE = 2
 	position = [0.2, 0.2, 0.9, 0.9]
-	cgplot, deltabase[good], ratio[good], psym = 16, color = 'blu7', $
+	cgplot, deltabase[good], ratio[good], psym = 16, color = 'blu7', yrange = [0, 1.2], $
 		xtitle = 'base(g) - base(p)', ytitle = 'FWHM(g)/FWHM(p)', position = position
 	cgps_close
 end 

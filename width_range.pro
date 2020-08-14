@@ -23,6 +23,10 @@ pro width_range
     cgplot, range[good_g]*delta, gwidth[good_g], position = pos, /overplot, psym = 16, color = 'red'
     item = ['Plummer', 'Gaussian']
     al_legend, item, color = ['blu7', 'red'], psym = [15, 16], position = [0.21, 0.69], /normal
+    beamsize = 0.1
+    cgplot, [0, 1], [beamsize, beamsize], linestyle = 2, $
+        /overplot, thick = 4, color = 'black'
+    cgtext, 0.43, 0.15, 'Beam size', color = 'black', /data
     cgps_close
     xp = range[good_p]*delta
     yp = pwidth[good_p]

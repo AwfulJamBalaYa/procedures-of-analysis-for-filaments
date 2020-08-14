@@ -90,7 +90,7 @@ pro N_width
     !p.CHARSIZE = 1.1
     pos = [0.2, 0.2, 0.7, 0.7]
     cgplot, N_asym[good_m2asym]/1e22, m2asym[good_m2asym], $
-        psym = 17, position = pos, color = 'grey', yrange = [0, 1.2], $
+        psym = 17, position = pos, color = 'grey', yrange = [0, 1.5], $
             xrange = [0, 25], ytitle = '!17 FWHM width (pc)', $
                 xtitle = '!17 Central column density 10!U22!N (cm!U-2!N)'
     cgplot, N_median[good_g]/1e22, gwidth[good_g], $
@@ -102,5 +102,9 @@ pro N_width
     item = ['Plummer', 'Gaussian', '2nd Moment (S)', '2nd Moment (A)']
     al_legend, item, color = ['blu7', 'red', 'green', 'grey'], psym = [15, 16, 17, 17], $
         position = [0.49, 0.69], /normal
+    beamsize = 0.1
+    cgplot, [0, 25], [beamsize, beamsize], linestyle = 2, $
+        /overplot, thick = 4, color = 'black'
+    cgtext, 10, 0.15, 'Beam size', color = 'black', /data
     cgps_close
 end

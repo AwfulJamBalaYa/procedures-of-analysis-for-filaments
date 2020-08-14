@@ -5,8 +5,12 @@ function get_overlap, ty, tx, tpeak, strange_absx
 	axis = findgen(n_axis)*0.5-(n_axis-1)/4. + tpeak
 	square_overlap = fltarr(n_axis)
 	n_y = n_elements(ty)
-	readcol, '../overlap/weight.cat', ave_lf, format = 'f(11.2)'
+	readcol, '../overlap/weight.cat', ave_lf, $
+		format = 'f(11.2)'
 	ave_lf[*] = 1.
+	yy1 = fltarr(n_axis, strange_absx+1)
+	yy2 = yy1
+	result = fltarr(2, strange_absx + 1)
 	for i = 0, n_axis-1 do begin
 		width = 0.
 		trange_absx = double(strange_absx)
@@ -34,6 +38,8 @@ function get_overlap, ty, tx, tpeak, strange_absx
 		if nan2[0] ne -1. then y2[nan2] = baseline
 		;if nan1[0] ne -1. then y1[nan2] = baseline
 		;if nan2[0] ne -1. then y2[nan1] = baseline
+		yy1[i, 0:trange_absx] = y1[0:trange_absx]
+		yy2[i, 0:trange_absx] = y2[0:trange_absx]
 		;baseline = 0.
 		y1 = y1 - baseline
 		y2 = y2 - baseline
@@ -54,8 +60,10 @@ function get_overlap, ty, tx, tpeak, strange_absx
 	endfor
 	max_overlap = max(square_overlap[*])
 	flag = axis[where(square_overlap eq max_overlap)]
-	result = [max_overlap, flag]
-	return, result
+	y_flag = where(axis[*] eq flag[0])
+	result[0, *] = yy1[y_flag, *]
+	result[1, *] = yy2[y_flag, *]
+	return, result[*, *]
 end
 
 function get_profile, f_index, s_index, cal_flag
@@ -66,8 +74,8 @@ function get_profile, f_index, s_index, cal_flag
 		strtrim(string(s_index), 2) + '/'
 	slices_name = file_search(dir + '*')
 	num = n_elements(slices_name)
-	x = fltarr(num, (2*halflength + 1))
-	x[*, *] = -1
+	x = fltarr(num, (2*halflength + 1.))
+	x[*, *] = -1.
 	y = x
 	datapick = x
 	errpick = x
@@ -110,12 +118,11 @@ function get_profile, f_index, s_index, cal_flag
 	endfor
 	avepro = double(fltarr(2*halflength+1))
 	prerr = avepro
-	avepro = avepro - 999.
 	if cal_flag eq 0. then remain[*] = 1.
 	for j = 0, 2*halflength do begin
 		if strcmp(seq_seg, '00000', 5) then begin
 			good2 = where(profile[*, j] gt 0 and finite(profile[*, j]))
-			good3 = where(proerr[*, j] gt 0.)
+			good3 = where(proerr[*, j] gt 0)
 		endif else begin
 			good2 = where(profile[*, j] gt 0 and finite(profile[*, j]) and remain[*] eq 1)
 			good3 = where(proerr[*, j] gt 0 and remain[*] eq 1)
@@ -127,8 +134,8 @@ function get_profile, f_index, s_index, cal_flag
 			prerr[j] = sqrt(total(((proerr[*, j])[good3])^2)/num_i^2)
 		endif
 		if n_elements((profile[*, j])[good2]) eq 1 and good2[0] ne -1 then begin
-			avepro[j] = (profile[*, j])[good2[0]]
 			prerr[j] = (proerr[*, j])[good3]
+			avepro[j] = (profile[*, j])[good2[0]]
 		endif
 		if avepro[j] eq -999. then avepro[j] = !values.f_nan
 	endfor
@@ -145,38 +152,105 @@ function find_peak, f_index, s_index, range, peak_flag
 	return, x
 end
 
-pro overlap
-	profile_flag = 0.
-	halflength = 20.
-	cdir = '../contalist/'
-	cdir_name = file_search(cdir + '*')
-	cdir_num = n_elements(cdir_name)
-	x = findgen(2*halflength + 1) - halflength
-	readcol, '../length.cat', index, format = 'I'
-	for i = 0, cdir_num-1 do begin
-		cat_name = file_search(cdir + 'contalist' + strtrim(string(index[i]), 2) + '.cat')
-		if profile_flag eq 0. then $
-			docname = '../overlap/ob_' + strtrim(string(index[i]), 2) + '.cat'
-		if profile_flag ne 0. then $
-			docname = '../overlap/in_' + strtrim(string(index[i]), 2) + '.cat'
-		openw, lun, docname, /get_lun
-		readcol, cat_name, ind, seg, remain, format = 'I, I, A'
-		for k = 0, n_elements(ind) - 1 do begin
-			y = get_profile(ind[k], seg[k], profile_flag)
-			peak = find_peak(ind[k], seg[k], halflength/4., profile_flag)
-			print, peak
-			len = [(2*halflength - peak), peak]
-			yy = y
-			xx = x
-			ppeak = peak
-			point_num = 7.
-			lap = get_overlap(yy, xx, ppeak, point_num)
-			;if (y[peak]-y[peak-1])*(y[peak+1]-y[peak]) ge 0. then lap[0] = -1.
-			if abs(peak - halflength) gt 2. then lap[0] = 0.
-			printf, lun, strtrim(string(ind[k]), 2), $
-				string(seg[k]), string(lap[0]), string(lap[1], format = '(f11.1)');, $
-					;string(fix(peak)), string(fix(step))
+pro axis_illustration
+	profile_flag = 1.
+	switch_flag = 2. ; 0: draw profiles from new symcate do not exists in 'cate_compare.cat'.
+					 ; 1: draw profiles form previous symcate ...
+					 ; others: draw all profiles from new sym_cate.
+	if profile_flag eq 0. then begin
+		readoc = '../overlap/ob_sym.cat'
+		epsname = '../overlap/ob_sym.eps'
+	endif else begin
+		readoc = '../overlap/in_sym.cat'
+		epsname = '../overlap/axis_illustration.eps'
+	endelse
+	if switch_flag eq 0. then $
+		epsname = '../compare/symnow.eps'
+	if switch_flag ne 1. then $
+		readcol, readoc, sym_ind, sym_seg, sym_lap, sym_axis, $
+			format = 'I, I, f, f'
+	if switch_flag eq 1. then begin
+		epsname = '../compare/symbefore.eps'
+		sym_cate = [1,2,5]
+		sym_ind = []
+		sym_seg = []
+		sym_lap = []
+		sym_axis = []
+		for i = 0, n_elements(sym_cate)-1 do begin
+			readcol, '../../overlap/overlap_cate' + $
+				strtrim(string(sym_cate[i]),2) + '.cat', $
+					be_ind, be_seg, be_lap, be_axis, format = 'I, I'
+			sym_ind = [sym_ind, be_ind]
+			sym_seg = [sym_seg, be_seg]
+			sym_lap = [sym_lap, be_lap]
+			sym_axis = [sym_axis, be_axis]
 		endfor
-		free_lun, lun
+	endif
+	readcol, '../overlap/cate_compare.cat', $
+		compare_ind, compare_seg, format = 'I, I'
+	flag_object = fltarr(n_elements(sym_ind)) + 1.
+	for i = 0, n_elements(sym_ind)-1 do begin
+		for j = 0, n_elements(compare_ind)-1 do begin
+			if sym_ind[i] eq compare_ind[j] and $
+				sym_seg[i] eq compare_seg[j] then begin
+				flag_object[i] = 0.
+				break
+			endif
+		endfor
 	endfor
+	good = [where(flag_object eq 1.)]
+	ind = sym_ind[good]
+	seg = sym_seg[good]
+	lap = sym_lap[good]
+	axis = sym_axis[good]
+	halflength = 20.
+	partlength = 10.
+	column = 1.
+	row = 1.
+	cgps_open, epsname, xsize = 5.*column, ysize = 5.*row, /encapsulated
+	;!p.multi = [0, column, row]
+	!p.font = -1
+	!p.thick = 2
+	!p.charthick = 1.5
+	!p.CHARSIZE = 1.5
+	pos = [0.2, 0.2, 0.8, 0.8]
+	for i = 1, 1 do begin;n_elements(ind)-1 do begin
+		x = findgen(2*halflength + 1) - halflength
+		profile = get_profile(ind[i], seg[i], profile_flag)
+		peak = find_peak(ind[i], seg[i], partlength/2., profile_flag)
+		cgplot, x, profile, xrange = [x[peak-partlength-1], x[peak+partlength+1]], $
+			yrange = [0, 1.5], xtitle = '!17 Distance to skeleton (pixel)', $
+				ytitle = '!17 N!DH2!N(r)/N!DH2!N(0)', psym = -16, $
+					symsize = 1, thick = 8, color = 'black', position = pos
+		step = 7.
+		yyy = get_overlap(profile, x, peak, step)
+		yyy1 = yyy[0, *]
+		yyy2 = yyy[1, *]
+		yyyy1 = profile*0.-1.
+		yyyy2 = yyyy1
+		for j = round(axis[i]), partlength + round(axis[i]) + 1. do begin
+			if j-round(axis[i]) le n_elements(yyy1[0, *]) - 1. then begin
+				yyyy1[j] = yyy1[0, j-round(axis[i])]
+				yyyy2[j] = yyy2[0, j-round(axis[i])]
+			endif
+		endfor
+		good1 = where(yyyy1 gt 0.)
+		good2 = where(yyyy2 gt 0.)
+		x_axis = axis[i] - halflength
+		cgplot, [x_axis, x_axis], [0, 1.5], linestyle = 2, /overplot, thick = 4, color = 'red4'
+		cgplot, [x_axis-0.5, x_axis-0.5], [0, 1.5], linestyle = 2, /overplot, thick = 4, color = 'blue'
+		cgplot, [x_axis+0.5, x_axis+0.5], [0, 1.5], linestyle = 2, /overplot, thick = 4, color = 'green'
+
+		cgtext, 2, 1.2, 'x = x!Dpeak!N-0.5', color = 'blue', /data, charsize = 1.2
+		cgtext, 2, 1.12, 'x = x!Dpeak!N', color = 'orange_red', /data, charsize = 1.2
+		cgtext, 2, 1.04, 'x = x!Dpeak!N+0.5', color = 'green', /data, charsize = 1.2
+
+		;al_legend, ['x = x!Daxis!N - 0.5', 'x = x!Daxis!N', 'x = x!Daxis!N + 0.5'], $
+		;	linestyle = [2, 2, 2] , box = 0, linsize = [0.1, 0.1], $
+		;		colors = ['blue', 'orange_red', 'green'], textcolors = ['blue', 'orange_red', 'green'] 
+		;cgtext, 4, 1.1, '!17 ' + strtrim(string(lap[i]), 2), color = 'orange_red', /data
+		;cgtext, 4, 1.2, 'F: ' + strtrim(string(ind[i]), 2) $
+		;	+ ', S: ' + strtrim(string(seg[i]), 2)
+	endfor
+	cgps_close
 end

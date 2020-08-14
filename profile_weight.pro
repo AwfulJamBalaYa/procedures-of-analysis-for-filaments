@@ -50,6 +50,7 @@ function get_profile, f_index, s_index, cal_flag
 	endfor
 	avepro = double(fltarr(2*halflength+1))
 	prerr = avepro
+	avepro = avepro - 999.
 	if cal_flag eq 0. then remain[*] = 1.
 
 	for j = 0, 2*halflength do begin

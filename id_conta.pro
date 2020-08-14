@@ -56,6 +56,7 @@ function get_profile, f_index, s_index, cal_flag
 	endfor
 	avepro = double(fltarr(2*halflength+1))
 	prerr = avepro
+	avepro = avepro - 999.
 	avepro1 = avepro
 	prerr1 = prerr
 	prerr2 = prerr

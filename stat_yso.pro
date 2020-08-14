@@ -1,6 +1,6 @@
 pro stat_yso
 	dis = 4.
-	startype = 0.
+	startype = 1.
     fits_read, '../../../N/categorymap/name.fits', skl, hdr
     ;fits_read, '../../width/allwidth/skl.fits', skl
     tables = ['../../../N/categorymap/catalogs/PBRs_S13v2.cat', $

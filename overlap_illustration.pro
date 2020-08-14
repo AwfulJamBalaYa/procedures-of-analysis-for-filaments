@@ -153,9 +153,9 @@ function find_peak, f_index, s_index, range, peak_flag
 	return, x
 end
 
-pro overlap_check
+pro overlap_illustration
 	profile_flag = 1.
-	switch_flag = 0. ; 0: draw profiles from new symcate do not exists in 'cate_compare.cat'.
+	switch_flag = 2. ; 0: draw profiles from new symcate do not exists in 'cate_compare.cat'.
 					 ; 1: draw profiles form previous symcate ...
 					 ; others: draw all profiles from new sym_cate.
 	if profile_flag eq 0. then begin
@@ -163,7 +163,7 @@ pro overlap_check
 		epsname = '../overlap/ob_sym.eps'
 	endif else begin
 		readoc = '../overlap/in_sym.cat'
-		epsname = '../overlap/in_sym.eps'
+		epsname = '../overlap/illustration.eps'
 	endelse
 	if switch_flag eq 0. then $
 		epsname = '../compare/symnow.eps'
@@ -207,21 +207,22 @@ pro overlap_check
 	halflength = 20.
 	partlength = 10.
 	column = 1.
-	row = n_elements(ind)
+	row = 1.
 	cgps_open, epsname, xsize = 5.*column, ysize = 5.*row, /encapsulated
-	!p.multi = [0, column, row]
+	;!p.multi = [0, column, row]
 	!p.font = -1
 	!p.thick = 2
 	!p.charthick = 1.5
 	!p.CHARSIZE = 1.5
-	for i = 0, n_elements(ind)-1 do begin
+	pos = [0.2, 0.2, 0.8, 0.8]
+	for i = 1, 1 do begin;n_elements(ind)-1 do begin
 		x = findgen(2*halflength + 1) - halflength
 		profile = get_profile(ind[i], seg[i], profile_flag)
 		peak = find_peak(ind[i], seg[i], partlength/2., profile_flag)
 		cgplot, x, profile, xrange = [x[peak-partlength-1], x[peak+partlength+1]], $
-			yrange = [0, 1.5], xtitle = '!17 Distance to skeleton', $
+			yrange = [0, 1.5], xtitle = '!17 Distance to skeleton (pixel)', $
 				ytitle = '!17 N!DH2!N(r)/N!DH2!N(0)', psym = -16, $
-					symsize = 1, thick = 8, color = 'black'
+					symsize = 1, thick = 8, color = 'black', position = pos
 		step = 7.
 		yyy = get_overlap(profile, x, peak, step)
 		yyy1 = yyy[0, *]
@@ -237,19 +238,72 @@ pro overlap_check
 		good1 = where(yyyy1 gt 0.)
 		good2 = where(yyyy2 gt 0.)
 		cgplot, x[good1], yyyy1[good1], psym = -16, symsize = 0.5, thick = 8, color = 'black', /overplot
-		cgplot, x[good1], yyyy2[good2], psym = -16, symsize = 0.5, thick = 8, color = 'red', /overplot
+		cgplot, x[good2], yyyy2[good2], psym = -16, symsize = 0.5, thick = 8, color = 'red', /overplot
 		x_axis = axis[i] - halflength
 		cgplot, [x_axis, x_axis], [0, 1.5], linestyle = 2, /overplot, thick = 4, color = 'red4'
 		yyyy = [yyyy1[good1], yyyy2[good2]]
 		baseline = min(yyyy)
-		cgplot, [-12, 12], [baseline, baseline], linestyle = 1, /overplot, thick = 4, color = 'black'
+		cgplot, [-12, 12], [baseline, baseline], linestyle = 2, /overplot, thick = 4, color = 'green'
 		cgplot, [(x[good1])[-1], (x[good1])[-1]], [baseline, (yyyy1[good1])[-1]], $
-			linestyle = 1, /overplot, thick = 4, color = 'black'
+			linestyle = 2, /overplot, thick = 4, color = 'black'
 		cgplot, [(x[good2])[-1], (x[good2])[-1]], [baseline, (yyyy2[good2])[-1]], $
-			linestyle = 1, /overplot, thick = 4, color = 'black'
-		cgtext, 4, 1.1, '!17 ' + strtrim(string(lap[i]), 2), color = 'orange_red', /data
-		cgtext, 4, 1.2, 'F: ' + strtrim(string(ind[i]), 2) $
-			+ ', S: ' + strtrim(string(seg[i]), 2)
+			linestyle = 2, /overplot, thick = 4, color = 'black'
+		
+		cross_y = fltarr(n_elements(yyy1[0, *]))
+		for i = 0, n_elements(cross_y)-1 do begin
+			cross_y[i] = yyy1[i]
+			if yyy1[i] lt yyy2[i] then cross_y[i] = yyy2[i]
+		endfor
+		cross_x = x[good1]
+		reverse_x = cross_x
+		num_x = n_elements(reverse_x)
+		for i = 0, num_x-1 do $
+			reverse_x[i] = cross_x[num_x-1-i]
+		cross_x = [cross_x, reverse_x, cross_x[0]]
+		reverse_y = cross_y
+		num_y = n_elements(reverse_y)
+		for i = 0, num_y-1 do $
+			reverse_y[i] = cross_y[num_x-1-i]
+		reverse_y[0:num_y-1] = baseline
+		cross_y = [cross_y, reverse_y, cross_y[0]]
+		cgpolygon, cross_x, cross_y, /fill, $
+			/data, color = 'grey';, /LINE_FILL, orientation = 45.
+
+		cross_y = fltarr(n_elements(yyy1[0, *]))
+		for i = 0, n_elements(cross_y)-1 do begin
+			cross_y[i] = yyy1[i]
+			if yyy1[i] gt yyy2[i] then cross_y[i] = yyy2[i]
+		endfor
+		cross_x = x[good1]
+		reverse_x = cross_x
+		num_x = n_elements(reverse_x)
+		for i = 0, num_x-1 do $
+			reverse_x[i] = cross_x[num_x-1-i]
+		cross_x = [cross_x, reverse_x[1:num_x-1], cross_x[0]]
+		reverse_y = cross_y
+		num_y = n_elements(reverse_y)
+		for i = 0, num_y-1 do $
+			reverse_y[i] = cross_y[num_x-1-i]
+		reverse_y[1:num_y-1] = baseline
+		cross_y = [cross_y, reverse_y[1:num_y-1], cross_y[0]]
+		cgpolygon, cross_x, cross_y, /fill, $
+			/data, color = 'blue', /LINE_FILL, orientation = 45.
+
+		cgplot, x, profile, psym = -16, symsize = 1, thick = 8, color = 'black', /overplot
+		cgplot, x[good1], yyyy1[good1], psym = -16, symsize = 1, thick = 8, color = 'black', /overplot
+		cgplot, x[good2], yyyy2[good2], psym = -16, symsize = 1, thick = 8, color = 'red', /overplot
+		cgplot, [x_axis, x_axis], [0, 1.5], linestyle = 2, /overplot, thick = 4, color = 'red4'
+		cgplot, [-12, 12], [baseline, baseline], linestyle = 2, /overplot, thick = 4, color = 'green'
+		cgplot, [(x[good1])[-1], (x[good1])[-1]], [baseline, (yyyy1[good1])[-1]], $
+			linestyle = 2, /overplot, thick = 4, color = 'black'
+		cgplot, [(x[good2])[-1], (x[good2])[-1]], [baseline, (yyyy2[good2])[-1]], $
+			linestyle = 2, /overplot, thick = 4, color = 'black'
+
+		cgtext, -8, 1.2, '!17 x = x!Daxis!N', color = 'orange_red', charsize = 1.5, /data
+		cgtext, -8, baseline-0.1, '!17 y = y!Dmin!N', color = 'green', charsize = 1.5, /data
+		;cgtext, 4, 1.1, '!17 ' + strtrim(string(lap[i]), 2), color = 'orange_red', /data
+		;cgtext, 4, 1.2, 'F: ' + strtrim(string(ind[i]), 2) $
+		;	+ ', S: ' + strtrim(string(seg[i]), 2)
 	endfor
 	cgps_close
 end

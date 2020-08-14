@@ -1,5 +1,5 @@
 pro id_cate
-	cate = 'w'
+	cate = 's'
 	readcol, '../length.cat', index, format = 'I'
 	dir = '../contalist/contalist'
 	ind_all = []

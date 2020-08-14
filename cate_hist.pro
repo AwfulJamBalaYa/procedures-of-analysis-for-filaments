@@ -25,16 +25,19 @@ pro cate_hist
 		epsname = '../overlap/in_hist.eps'
 	endelse
 	openw, lun, docname, /get_lun
-	pos = [0.2, 0.2, 0.8, 0.8]
+	pos = [0.3, 0.3, 0.7, 0.7]
 	cgps_open, epsname, xsize = 9., ysize = 6., /encapsulated
 	!p.font = -1
 	!p.thick = 2
 	!p.charthick = 1.5
 	!p.CHARSIZE = 1.5
 	cghistoplot, abs(lap_all[where(finite(lap_all))]), binsize = 0.02, $
-		xrange = [0.2, 1.1], xtitle = '!17 area ratio', ytitle = '!17 Number', $
-			ytickformat = '(I)', yrange = [0, 30], /fill, datacolorname = ['black'],  $
-				POLYCOLOR=['blu5'], position = pos, mininput = 0.2
+		xrange = [0.2, 1.1], xtitle = '!17 Degree of symmetry ' + 'P!D' + $
+			textoidl('\cap/\cup,max') + '!N', ytitle = '!17 Number', ytickformat = '(I)', $
+				yrange = [0, 30], /fill, datacolorname = ['black'], POLYCOLOR=['blu5'], $
+					position = pos, mininput = 0.2
+	cgplot, [0.75, 0.75], [0, 30], linestyle = 2, /overplot, thick = 4, color = 'red4'
+	cgtext, 0.68, 32, 'threashold = 0.75', color = 'red4', charsize = 1.2
 	cgps_close
 	print, double(n_elements(abs(lap_all[where(abs(lap_all ge threashold))]))), n_elements(lap_all)
 	for i = 0, n_elements(lap_all)-1 do begin
